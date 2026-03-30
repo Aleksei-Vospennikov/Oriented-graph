@@ -1,0 +1,7 @@
+digraph myDigraph {
+    rankdir=LR;
+    node [shape=circle];
+    n0 [label="1 (id = 0)"];
+    n1 [label="2 (id = 1)"];
+    n0 -> n1;
+}
