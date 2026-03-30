@@ -1,5 +1,0 @@
-digraph myDigraph {
-    rankdir=LR;
-    node [shape=circle];
-    n1 [label="2"];
-}
