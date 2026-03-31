@@ -6,9 +6,7 @@
 #include <cstdint>
 
 template <typename T>
-class Digraph {
-private:
-    struct Vertex {
+struct Vertex {
         T value;
         size_t vertexId;        
 
@@ -16,22 +14,12 @@ private:
             : value(val), vertexId(vertexId) {}
     };
 
-    std::vector<Vertex> vertices;
+template <typename T>
+class Digraph {
+private: 
+    std::vector<Vertex<T>> vertices;
     std::vector<std::vector<char>> adjMatrix;
-    size_t nextVertexId;
-
-    bool hasVertex(size_t id) const {
-        return getVertexIndex(id) != -1;
-    }
-
-    int getVertexIndex(size_t id) const {
-        for (size_t i = 0; i < vertices.size(); ++i) {
-            if (vertices[i].vertexId == id) {
-                return static_cast<int>(i);
-            }
-        }
-        return -1;
-    }
+    size_t nextVertexId;    
 
     void copyFrom(const Digraph& other) {
         vertices.clear();
@@ -44,10 +32,10 @@ private:
     void writeGraphToDotFile(std::ofstream& file, const std::string& graphname) const {
         file << "digraph " << graphname << " {\n";
         file << "    rankdir=LR;\n";
-        file << "    node [shape=circle];\n";
+        file << "    node [shape=record];\n";
 
         for (size_t i = 0; i < vertices.size(); ++i) {
-            file << "    n" << i << " [label=\"" << vertices[i].value << " (id = " << vertices[i].vertexId << ")\"];\n";            
+            file << "    n" << i << " [label=\"{{ " << vertices[i].value << " | " << vertices[i].vertexId << " }}\"];\n";            
         }
 
         for (size_t i = 0; i < vertices.size(); ++i) {
@@ -113,6 +101,10 @@ public:
 
     void addEdge(size_t from, size_t to) {
         if (!hasVertex(from) || !hasVertex(to)) { return; }
+
+        int fromIndex = getVertexIndex(from);
+        int toIndex   = getVertexIndex(to);
+
         adjMatrix[from][to] = 1;
     }
 
@@ -154,23 +146,178 @@ public:
         writeGraphToDotFile(file, graphname);
 
     }
+
+    bool hasVertex(size_t id) const {
+        return getVertexIndex(id) != -1;
+    }
+
+    int getVertexIndex(size_t id) const {
+        for (size_t i = 0; i < vertices.size(); ++i) {
+            if (vertices[i].vertexId == id) {
+                return static_cast<int>(i);
+            }
+        }
+        return -1;
+    }
+
+    const std::vector<Vertex<T>>& getAllVertices() const {
+        return vertices;
+    }
+
+    const std::vector<std::vector<char>>& getAdjMatrix() const {
+        return adjMatrix;
+    }
 };
+
+struct Edge {
+    size_t fromId;
+    size_t toId;
+};
+
+template <typename T>
+class Subgraph {
+private:    
+    const Digraph<T>& original;
+    std::vector<Vertex<T>> activeVertices;
+    std::vector<std::vector<char>> activeAdjMatrix;
+
+    int getVertexIndex(size_t id) const {
+        for (size_t i = 0; i < activeVertices.size(); ++i) {
+            if (activeVertices[i].vertexId == id) {
+                return static_cast<int>(i);
+            }
+        }
+
+        return -1;
+    }
+
+    bool hasVertex(size_t id) const {
+        return getVertexIndex(id) != -1;
+    }
+
+public:    
+    explicit Subgraph(const Digraph<T>& original) 
+        : original(original), activeVertices(original.getAllVertices()), activeAdjMatrix(original.getAdjMatrix()) {}
+    
+    Subgraph(const Digraph<T>& original, 
+             const std::vector<size_t>& subsetVerticesIds, 
+             const std::vector<Edge>& subsetEdges) : original(original) {
+        
+        activeAdjMatrix.resize(subsetVerticesIds.size(), std::vector<char>(subsetVerticesIds.size(), 0));
+
+        for (size_t i = 0; i < subsetVerticesIds.size(); ++i) {
+            int originIndex = original.getVertexIndex(subsetVerticesIds[i]);
+            if (originIndex != -1) {
+                activeVertices.push_back(original.getAllVertices()[originIndex]);
+            }
+        }
+
+        for (size_t i = 0; i < subsetEdges.size(); ++i) {
+            if (!original.hasVertex(subsetEdges[i].fromId) || !original.hasVertex(subsetEdges[i].toId)) {
+                continue;
+            }
+
+            int fromIndex = getVertexIndex(subsetEdges[i].fromId);
+            int toIndex   = getVertexIndex(subsetEdges[i].toId);
+
+            if (fromIndex == -1 || toIndex == -1) {
+                continue;
+            }
+
+            int originalFrom = original.getVertexIndex(subsetEdges[i].fromId);
+            int originalTo   = original.getVertexIndex(subsetEdges[i].toId);
+
+            activeAdjMatrix[fromIndex][toIndex] = original.getAdjMatrix()[originalFrom][originalTo];
+        }
+    }
+
+    const std::vector<Vertex<T>>& getActiveVertices() const {
+        return activeVertices;
+    } 
+
+    const std::vector<std::vector<char>>& getAdjMatrix() const {
+        return activeAdjMatrix;
+    }
+};
+
+
+template <typename T>
+static void writeMultipleGraphs(const std::string& filename, 
+                                const std::vector<const Subgraph<T>*>& graphs, 
+                                const std::vector<std::string>& names) {
+        if (graphs.size() != names.size()) {
+            std::cerr << "Error: number of graphs and number of names doesn't match!\n";
+            return;
+        }
+
+        std::ofstream file(filename);
+        file << "digraph All {\n";
+        file << "    rankdir=LR;\n";
+        file << "    compound=true;\n";
+        file << "    node [shape=record, style=\"rounded,filled\"];\n\n";
+
+        for (size_t i = 0; i < graphs.size(); ++i) {
+            file << "    subgraph cluster_" << i <<" {\n";
+            file << "        label=\"" << names[i] << "\";\n";
+            file << "        style=bold;\n";
+
+            const Subgraph<T>* subgraph = graphs[i];
+
+            for (size_t j = 0; j < subgraph->getActiveVertices().size(); ++j) {
+                file << "        g" << i << "_n" << j << " [label=\"{ " << subgraph->getActiveVertices()[j].vertexId 
+                     << " | " << subgraph->getActiveVertices()[j].value 
+                     << " }\", fillcolor=\"antiquewhite1\"];\n";
+            }
+
+            for (size_t j = 0; j < subgraph->getActiveVertices().size(); ++j) {
+                for (size_t k = 0; k < subgraph->getActiveVertices().size(); ++k) {
+                    if (subgraph->getAdjMatrix()[j][k] == 1) {
+                        file << "        g" << i << "_n" << j << " -> g" << i << "_n" << k << ";\n";
+                    }
+                }
+            }
+
+            file << "    }\n\n";
+        }
+
+        file << "}\n";
+        file.close();
+    }
+
 
 int main() {
     Digraph<int> g;
     
-    size_t a = g.addVertex(1);
-    size_t b = g.addVertex(2);
-    size_t c = g.addVertex(3);
+    size_t a = g.addVertex(10);
+    size_t b = g.addVertex(20);
+    size_t c = g.addVertex(30);
+    size_t d = g.addVertex(40);
+    size_t e = g.addVertex(50);
+    size_t f = g.addVertex(60);
+    size_t h = g.addVertex(70);
 
     g.addEdge(a, b);
-    g.addEdge(b, c);
     g.addEdge(a, c);
+    g.addEdge(a, d);
+    g.addEdge(b, d);
+    g.addEdge(b, e);
+    g.addEdge(c, d);
+    g.addEdge(d, a);
+    g.addEdge(d, e);
+    g.addEdge(d, f);
+    g.addEdge(d, h);
+    g.addEdge(e, c);
+    g.addEdge(h, f);
 
-    g.removeEdge(b, c);
-    g.removeVertex(c);
+    Subgraph<int> original(g);
 
-    g.toDotFile("digraph.dot", "myDigraph");
+    std::vector<size_t> subv = {a, b, c, d, f};
+    std::vector<Edge>   sube = {{a, b}, {a, c}, {a, d}, {c, d}, {d, f}};
+    Subgraph<int> subg(g, subv, sube);
+
+    std::vector<const Subgraph<int>*> graphs = {&original, &subg};
+    std::vector<std::string> names = {"Original", "Subgraph"};
+    writeMultipleGraphs("all.dot", graphs, names);
 
     // dot -Tpng myGraph.dot -o myGraph.png
     // dot -Tpdf myGraph.dot -o myGraph.pdf

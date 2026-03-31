@@ -1,0 +1,45 @@
+digraph All {
+    rankdir=LR;
+    compound=true;
+    node [shape=record, style="rounded,filled"];
+
+    subgraph cluster_0 {
+        label="Original";
+        style=bold;
+        g0_n0 [label="{ 0 | 10 }", fillcolor="antiquewhite1"];
+        g0_n1 [label="{ 1 | 20 }", fillcolor="antiquewhite1"];
+        g0_n2 [label="{ 2 | 30 }", fillcolor="antiquewhite1"];
+        g0_n3 [label="{ 3 | 40 }", fillcolor="antiquewhite1"];
+        g0_n4 [label="{ 4 | 50 }", fillcolor="antiquewhite1"];
+        g0_n5 [label="{ 5 | 60 }", fillcolor="antiquewhite1"];
+        g0_n6 [label="{ 6 | 70 }", fillcolor="antiquewhite1"];
+        g0_n0 -> g0_n1;
+        g0_n0 -> g0_n2;
+        g0_n0 -> g0_n3;
+        g0_n1 -> g0_n3;
+        g0_n1 -> g0_n4;
+        g0_n2 -> g0_n3;
+        g0_n3 -> g0_n0;
+        g0_n3 -> g0_n4;
+        g0_n3 -> g0_n5;
+        g0_n3 -> g0_n6;
+        g0_n4 -> g0_n2;
+        g0_n6 -> g0_n5;
+    }
+
+    subgraph cluster_1 {
+        label="Subgraph";
+        style=bold;
+        g1_n0 [label="{ 0 | 10 }", fillcolor="antiquewhite1"];
+        g1_n1 [label="{ 1 | 20 }", fillcolor="antiquewhite1"];
+        g1_n2 [label="{ 2 | 30 }", fillcolor="antiquewhite1"];
+        g1_n3 [label="{ 3 | 40 }", fillcolor="antiquewhite1"];
+        g1_n4 [label="{ 5 | 60 }", fillcolor="antiquewhite1"];
+        g1_n0 -> g1_n1;
+        g1_n0 -> g1_n2;
+        g1_n0 -> g1_n3;
+        g1_n2 -> g1_n3;
+        g1_n3 -> g1_n4;
+    }
+
+}
