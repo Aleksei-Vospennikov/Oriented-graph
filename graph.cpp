@@ -229,6 +229,94 @@ public:
 
             activeAdjMatrix[fromIndex][toIndex] = original.getAdjMatrix()[originalFrom][originalTo];
         }
+    }    
+
+    Subgraph<T> intersectWith(const Subgraph<T>& other) const {
+        if (!isCompatibleWith(other)) {
+            std::cout << "Intersection is defined only for subgraphs of the same digraph!\n";
+            return *this;
+        }
+
+        std::vector<size_t> commonVerticesIds;
+        for (size_t i = 0; i < activeVertices.size(); ++i) {
+            if (other.hasVertex(activeVertices[i].vertexId)) {
+                commonVerticesIds.push_back(activeVertices[i].vertexId);
+            }
+        }
+
+        std::vector<Edge> commonEdges;
+        for (size_t i = 0; i < activeVertices.size(); ++i) {
+            for (size_t j = 0; j < activeVertices.size(); ++j) {
+                if (activeAdjMatrix[i][j] == 1) {
+                    size_t fromId = activeVertices[i].vertexId;
+                    size_t   toId = activeVertices[j].vertexId;
+
+                    int otherFromIndex = other.getVertexIndex(fromId);
+                    int otherToIndex   = other.getVertexIndex(toId);
+
+                    if (otherFromIndex != -1 && otherToIndex != -1 &&
+                        other.activeAdjMatrix[otherFromIndex][otherToIndex] == 1) {
+
+                        commonEdges.push_back({fromId, toId});
+                    }
+                }
+            }
+        }
+
+        return Subgraph<T>(original, commonVerticesIds, commonEdges);         
+    }
+    
+    Subgraph<T> uniteWith(const Subgraph<T>& other) const {
+        if (!isCompatibleWith(other)) {
+            std::cout << "Union is defined only for subgraphs of the same digraph!\n";
+            return *this;
+        }
+
+        std::vector<size_t> unitedVerticesIds;
+        for (size_t i = 0; i < activeVertices.size(); ++i) {
+            unitedVerticesIds.push_back(activeVertices[i].vertexId);
+        }
+
+        for (size_t i = 0; i < other.getActiveVertices().size(); ++i) {
+            if (!hasVertex(other.getActiveVertices()[i].vertexId)) {
+                unitedVerticesIds.push_back(other.getActiveVertices()[i].vertexId);
+            }
+        }
+
+        std::vector<Edge> unitedEdges;
+
+        for (size_t i = 0; i < getOriginRef().getAllVertices().size(); ++i) {
+            for (size_t j = 0; j < getOriginRef().getAllVertices().size(); ++j) {                
+                size_t fromId = getOriginRef().getAllVertices()[i].vertexId;
+                size_t   toId = getOriginRef().getAllVertices()[j].vertexId;
+
+                bool thisHasEdge = false;
+                if (hasVertex(fromId) && hasVertex(toId)) {
+                    int thisFromIndex = getVertexIndex(fromId);
+                    int thisToIndex   = getVertexIndex(toId);
+
+                    thisHasEdge = static_cast<bool>(activeAdjMatrix[thisFromIndex][thisToIndex]);
+                }
+
+                bool otherHasEdge = false;
+                if (other.hasVertex(fromId) && other.hasVertex(toId)) {
+                    int otherFromIndex = other.getVertexIndex(fromId);
+                    int otherToIndex   = other.getVertexIndex(toId);   
+
+                    otherHasEdge = static_cast<bool>(other.getAdjMatrix()[otherFromIndex][otherToIndex]);                 
+                }
+
+                if (thisHasEdge + otherHasEdge) {
+                    unitedEdges.push_back({fromId, toId});
+                }
+            }
+        }
+
+        return Subgraph<T>(original, unitedVerticesIds, unitedEdges);
+    }
+
+    bool isCompatibleWith(const Subgraph<T>& other) const {
+        return &original == &other.original;
     }
 
     const std::vector<Vertex<T>>& getActiveVertices() const {
@@ -237,6 +325,10 @@ public:
 
     const std::vector<std::vector<char>>& getAdjMatrix() const {
         return activeAdjMatrix;
+    }
+
+    const Digraph<T>& getOriginRef() const {
+        return original;
     }
 };
 
@@ -302,7 +394,6 @@ int main() {
     g.addEdge(b, d);
     g.addEdge(b, e);
     g.addEdge(c, d);
-    g.addEdge(d, a);
     g.addEdge(d, e);
     g.addEdge(d, f);
     g.addEdge(d, h);
@@ -311,12 +402,19 @@ int main() {
 
     Subgraph<int> original(g);
 
-    std::vector<size_t> subv = {a, b, c, d, f};
-    std::vector<Edge>   sube = {{a, b}, {a, c}, {a, d}, {c, d}, {d, f}};
-    Subgraph<int> subg(g, subv, sube);
+    std::vector<size_t> subv1 = {a, b, c, d, f};
+    std::vector<Edge>   sube1 = {{a, b}, {a, c}, {a, d}, {c, d}, {d, f}};
+    Subgraph<int> subg1(g, subv1, sube1);
 
-    std::vector<const Subgraph<int>*> graphs = {&original, &subg};
-    std::vector<std::string> names = {"Original", "Subgraph"};
+    std::vector<size_t> subv2 = {a, c, e, d};
+    std::vector<Edge>   sube2 = {{a, c}, {a, d}, {c, d}, {d, e}, {e, c}};
+    Subgraph<int> subg2(g, subv2, sube2);
+
+    Subgraph<int> intersected = subg1.intersectWith(subg2);
+    Subgraph<int> united = subg1.uniteWith(subg2);
+
+    std::vector<const Subgraph<int>*> graphs = {&original, &subg1, &subg2, &intersected, &united};
+    std::vector<std::string> names = {"Original", "Subgraph1", "Subgraph2", "Intersected", "United"};
     writeMultipleGraphs("all.dot", graphs, names);
 
     // dot -Tpng myGraph.dot -o myGraph.png

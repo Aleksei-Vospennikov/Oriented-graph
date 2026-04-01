@@ -19,7 +19,6 @@ digraph All {
         g0_n1 -> g0_n3;
         g0_n1 -> g0_n4;
         g0_n2 -> g0_n3;
-        g0_n3 -> g0_n0;
         g0_n3 -> g0_n4;
         g0_n3 -> g0_n5;
         g0_n3 -> g0_n6;
@@ -28,7 +27,7 @@ digraph All {
     }
 
     subgraph cluster_1 {
-        label="Subgraph";
+        label="Subgraph1";
         style=bold;
         g1_n0 [label="{ 0 | 10 }", fillcolor="antiquewhite1"];
         g1_n1 [label="{ 1 | 20 }", fillcolor="antiquewhite1"];
@@ -40,6 +39,49 @@ digraph All {
         g1_n0 -> g1_n3;
         g1_n2 -> g1_n3;
         g1_n3 -> g1_n4;
+    }
+
+    subgraph cluster_2 {
+        label="Subgraph2";
+        style=bold;
+        g2_n0 [label="{ 0 | 10 }", fillcolor="antiquewhite1"];
+        g2_n1 [label="{ 2 | 30 }", fillcolor="antiquewhite1"];
+        g2_n2 [label="{ 4 | 50 }", fillcolor="antiquewhite1"];
+        g2_n3 [label="{ 3 | 40 }", fillcolor="antiquewhite1"];
+        g2_n0 -> g2_n1;
+        g2_n0 -> g2_n3;
+        g2_n1 -> g2_n3;
+        g2_n2 -> g2_n1;
+        g2_n3 -> g2_n2;
+    }
+
+    subgraph cluster_3 {
+        label="Intersected";
+        style=bold;
+        g3_n0 [label="{ 0 | 10 }", fillcolor="antiquewhite1"];
+        g3_n1 [label="{ 2 | 30 }", fillcolor="antiquewhite1"];
+        g3_n2 [label="{ 3 | 40 }", fillcolor="antiquewhite1"];
+        g3_n0 -> g3_n1;
+        g3_n0 -> g3_n2;
+        g3_n1 -> g3_n2;
+    }
+
+    subgraph cluster_4 {
+        label="United";
+        style=bold;
+        g4_n0 [label="{ 0 | 10 }", fillcolor="antiquewhite1"];
+        g4_n1 [label="{ 1 | 20 }", fillcolor="antiquewhite1"];
+        g4_n2 [label="{ 2 | 30 }", fillcolor="antiquewhite1"];
+        g4_n3 [label="{ 3 | 40 }", fillcolor="antiquewhite1"];
+        g4_n4 [label="{ 5 | 60 }", fillcolor="antiquewhite1"];
+        g4_n5 [label="{ 4 | 50 }", fillcolor="antiquewhite1"];
+        g4_n0 -> g4_n1;
+        g4_n0 -> g4_n2;
+        g4_n0 -> g4_n3;
+        g4_n2 -> g4_n3;
+        g4_n3 -> g4_n4;
+        g4_n3 -> g4_n5;
+        g4_n5 -> g4_n2;
     }
 
 }
